@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MyAmrita</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;600&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: url('image.png') no-repeat center center/cover;
+            background-blend-mode: overlay;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .my {
+            font-size: 50px;
+            font-weight: bold;
+            color: #d97d3d;
+            font-style: italic;
+            font-family: 'Pacifico', cursive;
+        }
+
+        .amrita {
+            font-size: 50px;
+            font-weight: bold;
+            color: white;
+            background-color: #a02040;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-left: 10px;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        label {
+            font-size: 16px;
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="email"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        select {
+            appearance: none;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="%23333" d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center;
+            background-size: 12px;
+            cursor: pointer;
+        }
+
+        .login-btn {
+            margin-top: 20px;
+            font-size: 20px;
+            background-color: #c6932f;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: 0.3s;
+            width: 100%;
+        }
+
+        .login-btn:hover {
+            background-color: #a07825;
+            transform: scale(1.05);
+        }
+
+        .register-link {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #a02040;
+            text-decoration: none;
+        }
+
+        .register-link:hover {
+            text-decoration: underline;
+        }
+
+        #errorMessage {
+            color: #a02040;
+            font-size: 14px;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body style="background-image: url('/static/img2.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+    <div class="container">
+        <div class="logo">
+            <span class="my">my</span>
+            <span class="amrita">AMRITA</span>
+        </div>
+        <form id="loginForm" method="POST" action="/login_redirect">
+            <div class="form-group">
+                <label for="role">Login As</label>
+                <select id="role" name="role" required>
+                    <option value="" disabled selected>Select your role</option>
+                    <option value="student">Student</option>
+                    <option value="class advisor">Class Advisor</option>
+                    <option value="hod">HOD</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="login-btn">LOGIN <span>▶</span></button>
+            <div id="errorMessage"></div>
+        </form>
+    </div>
+
+    <script>
+        let serverPassword = null;
+
+        function fetchPassword(email, role) {
+            fetch('http://localhost:5000/get_password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, role }),
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('errorMessage').textContent = data.error;
+                    serverPassword = null;
+                } else {
+                    serverPassword = data.password;
+                    document.getElementById('errorMessage').textContent = '';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('errorMessage').textContent = 'Server error';
+            });
+        }
+
+        const roleSelect = document.getElementById('role');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+
+        emailInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const role = roleSelect.value;
+                if (!role) {
+                    document.getElementById('errorMessage').textContent = 'Please select a role';
+                    return;
+                }
+                fetchPassword(emailInput.value, role);
+                passwordInput.focus();
+            }
+        });
+
+        passwordInput.addEventListener('focus', function() {
+            const role = roleSelect.value;
+            if (emailInput.value && !serverPassword && role) {
+                fetchPassword(emailInput.value, role);
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const role = roleSelect.value;
+            const enteredPassword = passwordInput.value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (!role) {
+                errorMessage.textContent = 'Please select a role';
+                return;
+            }
+
+            if (!serverPassword) {
+                errorMessage.textContent = 'Please enter a valid email first';
+                return;
+            }
+
+            if (enteredPassword === serverPassword) {
+                errorMessage.textContent = '';
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('userRole', role);
+                this.submit();  // Submit the form to /login_redirect
+            } else {
+                errorMessage.textContent = 'Incorrect password';
+            }
+        });
+
+        passwordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

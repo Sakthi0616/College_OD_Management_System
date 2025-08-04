@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit OD Request</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <header class="bg-red-700 text-white p-4 flex justify-between items-center">
+        <div class="text-2xl font-bold">Submit OD Request</div>
+        <div class="flex items-center" id="user-info">
+            <span class="mr-2" id="user-name">Loading...</span>
+            <i class="fas fa-user-circle text-2xl"></i>
+        </div>
+    </header>
+    <nav class="bg-white p-4 shadow">
+        <ol class="list-reset flex text-gray-500">
+            <li><a href="/dashboard/student" class="text-blue-500">Dashboard</a></li>
+            <li><span class="mx-2">/</span></li>
+            <li>Submit OD Request</li>
+        </ol>
+    </nav>
+    <main class="p-8">
+        <h1 class="text-2xl font-bold mb-4">OD Request Form</h1>
+        <div class="bg-white p-8 rounded-lg shadow-md">
+            <div class="border-b-2 border-blue-500 mb-4">
+                <h2 class="text-blue-500 font-semibold">Submit OD Request</h2>
+            </div>
+            <form id="od-form" method="POST" action="/submit_od_request" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="rollNumber" class="block text-gray-700">Roll Number</label>
+                        <input type="text" id="rollNumber" name="roll_number" class="w-full p-2 border rounded bg-gray-100" readonly>
+                    </div>
+                    <div>
+                        <label for="fromTime" class="block text-gray-700">From Time</label>
+                        <input type="time" id="fromTime" name="from_time" class="w-full p-2 border rounded" required>
+                    </div>
+                    <div>
+                        <label for="toTime" class="block text-gray-700">To Time</label>
+                        <input type="time" id="toTime" name="to_time" class="w-full p-2 border rounded" required>
+                    </div>
+                    <div>
+                        <label for="date" class="block text-gray-700">Date</label>
+                        <input type="date" id="date" name="date" class="w-full p-2 border rounded" required>
+                    </div>
+                    <div>
+                        <label for="reason" class="block text-gray-700">Reason</label>
+                        <input type="text" id="reason" name="reason" class="w-full p-2 border rounded" placeholder="Enter reason for OD" required>
+                    </div>
+                    <div>
+                        <label for="proof" class="block text-gray-700">OneDrive Link (Proof)</label>
+                        <input type="url" id="proof" name="proof" class="w-full p-2 border rounded" placeholder="Enter OneDrive link" required>
+                    </div>
+                </div>
+                <div id="error-msg" class="text-red-500 text-sm mt-2"></div>
+                <div class="flex justify-end space-x-4">
+                    <button type="submit" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">Submit</button>
+                    <a href="/dashboard/student" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </main>
+    <script>
+        // Ensure DOM is fully loaded before executing
+        $(document).ready(function() {
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            const userRole = sessionStorage.getItem('userRole');
+            if (!isLoggedIn || userRole !== 'student') {
+                window.location.href = "/login";
+            }
+
+            // Fetch and set the roll number and username dynamically
+            function updateUserInfo() {
+                fetch('http://127.0.0.1:5000/get_student_info', {
+                    method: 'GET',
+                    credentials: 'include'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error fetching student info:', data.error);
+                        $('#user-name').text('Error');
+                        $('#rollNumber').val('Error');
+                    } else {
+                        $('#rollNumber').val(data.student_id || 'Unknown');
+                        $('#user-name').text(data.name || 'Unknown User');
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                    $('#user-name').text('Error');
+                    $('#rollNumber').val('Error');
+                });
+            }
+
+            // Call the function to update user info
+            updateUserInfo();
+        });
+
+        // Form validation for time
+        $('#od-form').submit(function(e) {
+            const fromTime = $('input[name="from_time"]').val();
+            const toTime = $('input[name="to_time"]').val();
+            const errorMsg = $('#error-msg');
+
+            if (toTime <= fromTime) {
+                e.preventDefault();
+                errorMsg.text('To Time must be after From Time.');
+            }
+        });
+    </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92a9b02c0b4418e5',t:'MTc0MzY5NTA3NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92aa10fe2c4b452b',t:'MTc0MzY5OTA0MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Profile</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background-image: url('/static/img2.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+        }
+        .profile-container { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 100%;
+        }
+        .profile-img { width: 180px; height: 180px; object-fit: cover; border-radius: 10px; border: 2px solid #ddd; }
+        .profile-details { padding-left: 30px; }
+        .profile-heading { 
+            background: #c41c48; 
+            color: white; 
+            padding: 5px; 
+            border-radius: 0; 
+            position: fixed; 
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%; 
+            z-index: 1000; 
+        }
+        .logout-link { 
+            text-decoration: none; 
+            color: #333; 
+            position: absolute; 
+            right: 10px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            background-color: #e0e0e0; 
+            padding: 5px 15px; 
+            border-radius: 5px; 
+            font-weight: 500; 
+            transition: background-color 0.3s; 
+        }
+        .logout-link:hover { 
+            background-color: #d0d0d0; 
+            color: #333; 
+        }
+        .container { 
+            padding-top: 40px; 
+        }
+        .new-od-section, .pending-od-section, .past-od-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 100%;
+        }
+        .new-od-section {
+            background: #c41c48;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+        .request-od-btn {
+            background-color: white;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .request-od-btn:hover {
+            background-color: #f0f0f0;
+        }
+        .pending-od-table th, .pending-od-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
+    <script>
+        window.onload = function() {
+            // Check for success parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success') === 'true') {
+                alert('OD Request submitted successfully!');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            let isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            if (isLoggedIn === null || isLoggedIn === 'false') {
+                window.location.href = "/login";
+            }
+
+            // Fetch student info
+            fetch('http://127.0.0.1:5000/get_student_info', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    console.error('Error fetching student info:', data.error);
+                    return;
+                }
+                // Format dob to show only date
+                const dob = new Date(data.dob).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                
+                document.getElementById('student-name').textContent = data.name;
+                document.getElementById('roll-number').textContent = data.student_id;
+                document.getElementById('dob').textContent = dob;
+                document.getElementById('program').textContent = data.department;
+                document.getElementById('mobile').textContent = data.mobile;
+                document.getElementById('specialization').textContent = data.specialization;
+                document.getElementById('email').innerHTML = `<a href="mailto:${data.email}">${data.email}</a>`;
+                document.getElementById('batch').textContent = data.batch;
+                document.getElementById('campus').textContent = data.campus;
+                document.getElementById('school').textContent = data.school;
+
+                // Fetch pending OD requests using the roll number
+                fetchPendingODRequests(data.student_id);
+                // Fetch all past OD requests (approved and rejected) using the roll number
+                fetchAllPastODRequests(data.student_id);
+            })
+            .catch(error => console.error('Fetch error:', error));
+        };
+
+        function fetchPendingODRequests(rollNumber) {
+            fetch(`http://127.0.0.1:5000/get_pending_od_requests?roll_number=${rollNumber}`, {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const tbody = document.getElementById('pending-od-tbody');
+                tbody.innerHTML = ''; // Clear existing rows
+
+                if (data.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                    `;
+                    tbody.appendChild(row);
+                } else {
+                    data.forEach(request => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${request.od_id}</td>
+                            <td>${request.reason}</td>
+                            <td>${request.from_time}</td>
+                            <td>${request.to_time}</td>
+                            <td>${request.date}</td>
+                            <td>${request.status}</td>
+                            <td>${request.final_status}</td>
+                            <td>${request.created_on}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching pending OD requests:', error);
+                const tbody = document.getElementById('pending-od-tbody');
+                tbody.innerHTML = '<tr><td colspan="8">Error loading data</td></tr>';
+            });
+        }
+
+        function fetchAllPastODRequests(rollNumber) {
+            fetch(`http://127.0.0.1:5000/get_all_past_od_requests?roll_number=${rollNumber}`, {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const tbody = document.getElementById('past-od-tbody');
+                tbody.innerHTML = ''; // Clear existing rows
+
+                if (data.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                    `;
+                    tbody.appendChild(row);
+                } else {
+                    // The backend already sorts by created_at in descending order
+                    data.forEach(request => {
+                        const row = document.createElement('tr');
+                        let status, finalStatus;
+
+                        // Calculate status based on teacher_approved and hod_approved
+                        if (request.teacher_approved && request.hod_approved) {
+                            status = 'Level 2';
+                        } else if (request.teacher_approved) {
+                            status = 'Level 1';
+                        } else {
+                            status = 'Level 0';
+                        }
+
+                        // Final status based on the table
+                        finalStatus = request.table_name === 'approved_od' ? 'Approved' : 'Rejected';
+
+                        row.innerHTML = `
+                            <td>${request.od_id}</td>
+                            <td>${request.reason}</td>
+                            <td>${request.from_time}</td>
+                            <td>${request.to_time}</td>
+                            <td>${request.date}</td>
+                            <td>${status}</td>
+                            <td>${finalStatus}</td>
+                            <td>${request.created_on}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching all past OD requests:', error);
+                const tbody = document.getElementById('past-od-tbody');
+                tbody.innerHTML = '<tr><td colspan="8">Error loading data</td></tr>';
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="profile-heading">
+        <h2 class="text-start">Student Dashboard</h2>
+        <a href="#" class="logout-link">Logout</a>
+    </div>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-1"></div>
+            <div class="col-md-10 profile-container shadow">
+                <div class="row align-items-center">
+                    <div class="col-md-3 text-center"><img src="/static/user.png" alt="Profile Picture" class="profile-img"></div>
+                    <div class="col-md-9 profile-details">
+                        <table class="table table-bordered">
+                            <tr><th>Name</th><td><span id="student-name"></span></td><th>Roll Number</th><td><span id="roll-number"></span></td></tr>
+                            <tr><th>Date of Birth</th><td><span id="dob"></span></td><th>Program</th><td><span id="program"></span></td></tr>
+                            <tr><th>Mobile Number</th><td><span id="mobile"></span></td><th>Specialization</th><td><span id="specialization"></span></td></tr>
+                            <tr><th>Email</th><td><span id="email"></span></td><th>Batch</th><td><span id="batch"></span></td></tr>
+                            <tr><th>Campus</th><td><span id="campus"></span></td><th>School</th><td><span id="school"></span></td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-1"></div>
+        </div>
+
+        <!-- New OD Request Section -->
+        <div class="row">
+            <div class="col-md-1"></div>
+            <div class="col-md-10 new-od-section">
+                <button class="request-od-btn" onclick="redirectToSubmitOD()">Request New OD</button>
+            </div>
+            <div class="col-md-1"></div>
+        </div>
+
+        <!-- Pending OD Section -->
+        <div class="row">
+            <div class="col-md-1"></div>
+            <div class="col-md-10 pending-od-section">
+                <h4>Pending OD</h4>
+                <table class="table table-bordered pending-od-table">
+                    <thead>
+                        <tr>
+                            <th>OD ID</th>
+                            <th>Reason</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Final Status</th>
+                            <th>Created On</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pending-od-tbody">
+                        <!-- Rows will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-1"></div>
+        </div>
+
+        <!-- Past OD Section -->
+        <div class="row">
+            <div class="col-md-1"></div>
+            <div class="col-md-10 past-od-section">
+                <h4>Past OD</h4>
+                <table class="table table-bordered pending-od-table">
+                    <thead>
+                        <tr>
+                            <th>OD ID</th>
+                            <th>Reason</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Final Status</th>
+                            <th>Created On</th>
+                        </tr>
+                    </thead>
+                    <tbody id="past-od-tbody">
+                        <!-- Rows will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-1"></div>
+        </div>
+    </div>
+    <script>
+        function redirectToSubmitOD() { window.location.href = "/submit_od"; }
+
+        document.querySelector('.logout-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            sessionStorage.removeItem('isLoggedIn');
+            sessionStorage.removeItem('userRole');
+            window.location.href = "/login";
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92a9c9515ca27bcf',t:'MTc0MzY5NjEwNS.ConcurrentModificationExceptionMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92adb698fcd9070f',t:'MTc0MzczNzI4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92adf56d18f6dd1e',t:'MTc0MzczOTg1NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyAmrita Login</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;600&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: url('image.png') no-repeat center center/cover;
+            background-blend-mode: overlay;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .my {
+            font-size: 50px;
+            font-weight: bold;
+            color: #d97d3d;
+            font-style: italic;
+            font-family: 'Pacifico', cursive;
+        }
+
+        .amrita {
+            font-size: 50px;
+            font-weight: bold;
+            color: white;
+            background-color: #a02040;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-left: 10px;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 2px;
+        }
+
+        .tagline {
+            font-size: 18px;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        .login-btn {
+            margin-top: 20px;
+            font-size: 20px;
+            background-color: #c6932f;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .login-btn:hover {
+            background-color: #a07825;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body style="background-image: url('/static/img2.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+    <div class="container">
+        <div class="logo">
+            <span class="my">my</span>
+            <span class="amrita">AMRITA</span>
+        </div>
+        <p class="tagline">YOUR OD MANAGEMENT SYSTEM</p>
+        <button class="login-btn" onclick="redirectToLogin()">LOGIN <span>▶</span></button>
+    </div>
+    <script>
+        function redirectToLogin() {
+            window.location.href = "/login";
+        }
+    </script>
+</body>
+</html>

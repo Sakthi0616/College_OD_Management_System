@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Advisor Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background-image: url('/static/img2.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+        }
+        .profile-container { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 100%;
+        }
+        .profile-img { width: 180px; height: 180px; object-fit: cover; border-radius: 10px; border: 2px solid #ddd; }
+        .profile-details { padding-left: 30px; }
+        .profile-heading { 
+            background: #c41c48; 
+            color: white; 
+            padding: 5px; 
+            border-radius: 0; 
+            position: fixed; 
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%; 
+            z-index: 1000; 
+        }
+        .logout-link { 
+            text-decoration: none; 
+            color: #000000 !important;
+            position: absolute; 
+            right: 10px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            background-color: #e0e0e0; 
+            padding: 5px 15px; 
+            border-radius: 5px; 
+            font-weight: 500; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .logout-link:hover { 
+            background-color: #d0d0d0; 
+            color: #333;
+        }
+        .container { 
+            padding-top: 40px; 
+        }
+        .pending-od-section, .past-od-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 100%;
+        }
+        .pending-od-table th, .pending-od-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .btn-approve {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        .btn-reject {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-heading">
+        <h2 class="text-start">Class Advisor Dashboard</h2>
+        <a href="#" id="logout-link" class="logout-link">Logout</a>
+    </div>
+    <div class="container mt-4">
+        <div class="profile-container shadow">
+            <div class="row align-items-center">
+                <div class="col-md-3 text-center">
+                    <img src="/static/user.png" alt="Profile Picture" class="profile-img">
+                </div>
+                <div class="col-md-9 profile-details">
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Name</th>
+                            <td><span id="teacher-name"></span></td>
+                            <th>Employee ID</th>
+                            <td><span id="staff-id"></span></td>
+                        </tr>
+                        <tr>
+                            <th>Role</th>
+                            <td><span id="role"></span></td>
+                            <th>Class</th>
+                            <td><span id="class"></span></td>
+                        </tr>
+                        <tr>
+                            <th>Department</th>
+                            <td><span id="department"></span></td>
+                            <th>Campus</th>
+                            <td><span id="campus"></span></td>
+                        </tr>
+                        <tr>
+                            <th>Mobile Number</th>
+                            <td><span id="mobile"></span></td>
+                            <th>Email</th>
+                            <td><span id="teacher-email"></span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending OD Section -->
+        <div class="pending-od-section">
+            <h4>Pending OD Requests</h4>
+            <table class="table table-bordered pending-od-table">
+                <thead>
+                    <tr>
+                        <th>OD ID</th>
+                        <th>Roll Number</th>
+                        <th>Reason</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Final Status</th>
+                        <th>Proof</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pending-od-requests">
+                    <!-- Rows will be populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Advisor-Approved OD Section -->
+        <div class="past-od-section">
+            <h4>Advisor-Approved OD Requests</h4>
+            <input type="text" id="searchApprovedOD" class="form-control mb-3" placeholder="Search advisor-approved OD requests...">
+            <table class="table table-bordered pending-od-table">
+                <thead>
+                    <tr>
+                        <th>OD ID</th>
+                        <th>Roll Number</th>
+                        <th>Reason</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Final Status</th>
+                        <th>Created On</th>
+                    </tr>
+                </thead>
+                <tbody id="approved-od-requests">
+                    <!-- Rows will be populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        window.onload = function() {
+            let isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            let userRole = sessionStorage.getItem('userRole');
+            if (!isLoggedIn || userRole !== 'class advisor') {
+                window.location.href = "/login";
+            }
+
+            // Fetch advisor info
+            fetch('http://127.0.0.1:5000/get_advisor_info', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    console.error('Error fetching advisor info:', data.error);
+                    window.location.href = "/login";
+                    return;
+                }
+                document.getElementById('teacher-name').textContent = data.name;
+                document.getElementById('staff-id').textContent = data.staff_id;
+                document.getElementById('role').textContent = data.role;
+                document.getElementById('class').textContent = data.class;
+                document.getElementById('department').textContent = data.department;
+                document.getElementById('teacher-email').textContent = data.email;
+                document.getElementById('mobile').textContent = data.mobile;
+                document.getElementById('campus').textContent = data.campus;
+
+                loadPendingODRequests();
+                loadApprovedODRequests();
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                window.location.href = "/login";
+            });
+
+            document.getElementById("searchApprovedOD").addEventListener("input", filterApprovedODRequests);
+
+            document.getElementById("logout-link").addEventListener('click', function(e) {
+                e.preventDefault();
+                sessionStorage.removeItem('isLoggedIn');
+                sessionStorage.removeItem('userRole');
+                window.location.href = "/login";
+            });
+        };
+
+        function loadPendingODRequests() {
+            fetch('http://127.0.0.1:5000/get_advisor_pending_od_requests', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                const tbody = document.getElementById('pending-od-requests');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10">No pending requests</td></tr>';
+                } else {
+                    data.forEach(request => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${request.od_id}</td>
+                            <td>${request.roll_number}</td>
+                            <td>${request.reason}</td>
+                            <td>${request.from_time}</td>
+                            <td>${request.to_time}</td>
+                            <td>${request.date}</td>
+                            <td>${request.status}</td>
+                            <td>${request.final_status}</td>
+                            <td><a href="${request.proof}" target="_blank" class="text-blue-500">View Proof</a></td>
+                            <td>
+                                <button class="btn-approve" onclick="approveOD('${request.od_id}')">Approve</button>
+                                <button class="btn-reject" onclick="rejectOD('${request.od_id}')">Reject</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching pending OD requests:', error);
+                document.getElementById('pending-od-requests').innerHTML = '<tr><td colspan="10">Error loading data</td></tr>';
+            });
+        }
+
+        function loadApprovedODRequests() {
+            fetch('http://127.0.0.1:5000/get_advisor_approved_od_requests', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                const tbody = document.getElementById('approved-od-requests');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9">No advisor-approved requests</td></tr>';
+                } else {
+                    data.forEach(request => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${request.od_id}</td>
+                            <td>${request.roll_number}</td>
+                            <td>${request.reason}</td>
+                            <td>${request.from_time}</td>
+                            <td>${request.to_time}</td>
+                            <td>${request.date}</td>
+                            <td>${request.status}</td>
+                            <td>${request.final_status}</td>
+                            <td>${request.created_on || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching advisor-approved OD requests:', error);
+                document.getElementById('approved-od-requests').innerHTML = '<tr><td colspan="9">Error loading data</td></tr>';
+            });
+        }
+
+        function approveOD(odId) {
+            if (!odId) {
+                alert('Invalid OD ID');
+                return;
+            }
+
+            fetch('http://127.0.0.1:5000/approve_od_request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ od_number: odId }),
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(data.message);
+                    loadPendingODRequests(); // Refresh the list
+                }
+            })
+            .catch(error => {
+                console.error('Error approving OD:', error);
+                alert('Failed to approve OD request');
+            });
+        }
+
+        function rejectOD(odId) {
+            if (!odId) {
+                alert('Invalid OD ID');
+                return;
+            }
+
+            fetch('http://127.0.0.1:5000/reject_od_request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ od_number: odId }),
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(data.message);
+                    loadPendingODRequests(); // Refresh the list
+                }
+            })
+            .catch(error => {
+                console.error('Error rejecting OD:', error);
+                alert('Failed to reject OD request');
+            });
+        }
+
+        function filterApprovedODRequests() {
+            const searchQuery = document.getElementById("searchApprovedOD").value.toLowerCase();
+            fetch('http://127.0.0.1:5000/get_advisor_approved_od_requests', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                const tbody = document.getElementById('approved-od-requests');
+                tbody.innerHTML = '';
+
+                const filteredRequests = data.filter(request =>
+                    request.od_id.toLowerCase().includes(searchQuery) ||
+                    request.roll_number.toLowerCase().includes(searchQuery) ||
+                    request.reason.toLowerCase().includes(searchQuery) ||
+                    request.from_time.toLowerCase().includes(searchQuery) ||
+                    request.to_time.toLowerCase().includes(searchQuery) ||
+                    request.date.toLowerCase().includes(searchQuery)
+                );
+
+                if (filteredRequests.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9">No matching advisor-approved requests</td></tr>';
+                } else {
+                    filteredRequests.forEach(request => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${request.od_id}</td>
+                            <td>${request.roll_number}</td>
+                            <td>${request.reason}</td>
+                            <td>${request.from_time}</td>
+                            <td>${request.to_time}</td>
+                            <td>${request.date}</td>
+                            <td>${request.status}</td>
+                            <td>${request.final_status}</td>
+                            <td>${request.created_on || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error filtering advisor-approved OD requests:', error);
+                document.getElementById('approved-od-requests').innerHTML = '<tr><td colspan="9">Error loading data</td></tr>';
+            });
+        }
+    </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92ab56e46f6c2415',t:'MTc0MzcxMjM4OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92ae115d7d164588',t:'MTc0Mzc0MDk5OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
